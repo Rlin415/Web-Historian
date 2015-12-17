@@ -10,10 +10,24 @@ exports.headers = headers = {
   'Content-Type': "text/html"
 };
 
-exports.serveAssets = function(res, asset, callback) {
-  // Write some code here that helps serve up your static files!
-  // (Static files are things like html (yours or archived from others...),
-  // css, or anything that doesn't change often.)
+var actions = {
+   "GET": function(req, res) {
+    res.writeHead(404,headers.headers);
+    res.end();
+  },
+  "POST": function(req, res) {
+    res.writeHead(404, headers.headers);
+    res.end();
+  },
+  "OPTIONS": function(req, res) {
+    res.writeHead(404, headers.headers);
+    res.end();
+  }
+};
+
+exports.serveAssets = function(req, res) {
+  var action = actions[req.method];
+  action(req, res);
 };
 
 
