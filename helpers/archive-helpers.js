@@ -1,7 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var _ = require('underscore');
-
+var request = require('request');
 /*
  * You will need to reuse the same paths many times over in the course of this sprint.
  * Consider using the `paths` object below to store frequently used file paths. This way,
@@ -25,10 +25,30 @@ exports.initialize = function(pathsObj){
 // The following function names are provided to you to suggest how you might
 // modularize your code. Keep it clean!
 
-exports.readListOfUrls = function(){
+exports.readListOfUrls = function(callback){
+  var stream = fs.createReadStream("../web/archives/sites.txt");
+  var data = "";
+  stream.on("data", function(chunk) {
+    callback(chunk);
+  });
 };
 
-exports.isUrlInList = function(){
+exports.isUrlInList = function(data){
+  fs.readdir("../web/archives/sites", function(err, files) {
+    files.forEach(function(file) {
+      if (file === data) {
+        //serve it
+        console.log('its in there');
+        console.log(this);
+        return true;
+      }else{
+        // archive.downloadUrls();
+        console.log('its not there');
+        return false;
+      }
+
+    });
+  });
 };
 
 exports.addUrlToList = function(){
@@ -37,5 +57,6 @@ exports.addUrlToList = function(){
 exports.isUrlArchived = function(){
 };
 
-exports.downloadUrls = function(){
+exports.downloadUrls = function(chunk){
+  request('http://' + chunk).pipe(fs.createWriteStream('./archives/sites/' + chunk));
 };
