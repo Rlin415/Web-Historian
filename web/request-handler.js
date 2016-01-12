@@ -1,51 +1,60 @@
 var path = require('path');
 var archive = require('../helpers/archive-helpers');
 var httpHelper = require("./http-helpers");
-var fs = require("fs");
-var request = require('request');
-var url;
+var url = require('url');
 
-archive.readListOfUrls(function(chunk) {
-  archive.isUrlInList(chunk, function(data) {
-    archive.downloadUrls(chunk);
+var getSite = function(req, res) {
+  var urlPath = url.parse(req.url).pathname;
+
+  if (urlPath === '/') urlPath = '/index.html';
+
+  helpers.serveAssets(response, urlPath, function() {
+
+    if (urlPath[0] === '/') urlPath = url.Path.slice(1);
+
+    archive.isUrlInList(urlPath, function(found) {
+      if (found) {
+        helpers.sendRedirect(response, '/loading.html');
+      } else {
+        helpers.send404(response);
+      }
+    });
   });
-});
+};
 
-fs.readdir("../web/archives/sites", function(err, files) {
-  console.log(files);
-});
-// require more modules/folders here!/
+var saveSite = function(req, res) {
+  helpers.collectData(req, function(data) {
+    var url = JSON.parse(data).url.replace('http://', '');
+
+    archive.isUrlInList(url, function(found) {
+      if (found) {
+        archive.isUrlArchived(url, function(exists) {
+          if (exists) {
+            helpers.sendRedirect(res, '/' + url);
+          } else {
+            helpers.sendRedirect(res, '/loading.html');
+          }
+        });
+      } else {
+        archive.addUrlToList(url, function() {
+          helpers.sendRedirect(res, '/loading.html');
+        });
+      }
+    });
+  });
+};
 
 var actions = {
-  "GET": function(req, res) {
-    res.writeHead(httpHelper.headers);
-    fs.readFile("./public/index.html", function(err, content) {
-      res.write(content);
-      res.end();
-    });
-  },
-  "POST": function(req, res) {
-    var stream;
-    req.on('data', function(data) {
-      url = data.toString().split('=')[1] + "\n";
-      stream = fs.appendFile('./archives/sites.txt', url, function(err) {
-        if (err) {
-          throw err;
-        }
-      });
-    });
-    res.writeHead(httpHelper.headers);
-    //request('http://www.google.com').pipe(fs.createWriteStream('./archives/sites/www.google.com'));
-    res.end("POSTED");
-  },
-  "OPTIONS": function(req, res) {
-    res.writeHead(httpHelper.headers);
-    res.end();
-  }
-
+  'GET': getSite,
+  'POST': saveSite
 };
 
 exports.handleRequest = function (req, res) {
-  var action = actions[req.method];
-  action(req, res);
+  var handler = actions[req.method];
+
+  if (handler) {
+    handler(req, res);
+  } else {
+    helpers.send404(res);
+  }
 };
