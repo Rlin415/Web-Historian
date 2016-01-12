@@ -26,37 +26,39 @@ exports.initialize = function(pathsObj){
 // modularize your code. Keep it clean!
 
 exports.readListOfUrls = function(callback){
-  var stream = fs.createReadStream("../web/archives/sites.txt");
-  var data = "";
-  stream.on("data", function(chunk) {
-    callback(chunk);
+  fs.readFile(exports.path.list, function(err, sites) {
+    sites = sites.toString().split('\n');
+    if (callback) callback(sites);
   });
 };
 
-exports.isUrlInList = function(data){
-  fs.readdir("../web/archives/sites", function(err, files) {
-    files.forEach(function(file) {
-      if (file === data) {
-        //serve it
-        console.log('its in there');
-        console.log(this);
-        return true;
-      }else{
-        // archive.downloadUrls();
-        console.log('its not there');
-        return false;
-      }
-
+exports.isUrlInList = function(url, callback){
+  exports.readListOfUrls(function(sites) {
+    var found = _.any(sites, function(site, i) {
+      return site.match(url);
     });
+    callback(found);
   });
 };
 
-exports.addUrlToList = function(){
+exports.addUrlToList = function(url, callback){
+  fs.appendFile(exports.paths.list, url + '\n', function(err, file) {
+    callback();
+  });
 };
 
-exports.isUrlArchived = function(){
+exports.isUrlArchived = function(url, callback){
+  var sitePath = path.join(exports.paths.archivedSites, url);
+
+  fs.exists(sitePath, function(exists) {
+    callback(exists);
+  });
 };
 
-exports.downloadUrls = function(chunk){
-  request('http://' + chunk).pipe(fs.createWriteStream('./archives/sites/' + chunk));
+exports.downloadUrls = function(urls){
+  // Iterate over urls and pipe to new files
+  _.each(urls, function(url) {
+    if (!url) return;
+    request('http://' + url).pipe(fs.createWriteStream(exports.paths.archivedSites + '/' + url));
+  });
 };
