@@ -54,7 +54,3 @@ exports.serveAssets = function(res, asset, callback) {
       callback ? callback(): exports.send404(res);
     });
 };
-
-
-
-// As you progress, keep thinking about what helper functions you can put here!

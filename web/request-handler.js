@@ -8,36 +8,36 @@ var getSite = function(req, res) {
 
   if (urlPath === '/') urlPath = '/index.html';
 
-  helpers.serveAssets(response, urlPath, function() {
+  httpHelper.serveAssets(res, urlPath, function() {
 
     if (urlPath[0] === '/') urlPath = url.Path.slice(1);
 
-    archive.isUrlInList(urlPath, function(found) {
+    archive.isUrlInList(urlPath.slice(1), function(found) {
       if (found) {
-        helpers.sendRedirect(response, '/loading.html');
+        httpHelper.sendRedirect(res, '/loading.html');
       } else {
-        helpers.send404(response);
+        httpHelper.send404(res);
       }
     });
   });
 };
 
 var saveSite = function(req, res) {
-  helpers.collectData(req, function(data) {
-    var url = JSON.parse(data).url.replace('http://', '');
-
+  httpHelper.collectData(req, function(data) {
+    var url = data.split('=')[1];
     archive.isUrlInList(url, function(found) {
       if (found) {
         archive.isUrlArchived(url, function(exists) {
           if (exists) {
-            helpers.sendRedirect(res, '/' + url);
+            httpHelper.sendRedirect(res, '/' + url);
           } else {
-            helpers.sendRedirect(res, '/loading.html');
+            httpHelper.sendRedirect(res, '/loading.html');
+            archive.downloadUrls([url]);
           }
         });
       } else {
         archive.addUrlToList(url, function() {
-          helpers.sendRedirect(res, '/loading.html');
+          httpHelper.sendRedirect(res, '/loading.html');
         });
       }
     });
@@ -55,6 +55,6 @@ exports.handleRequest = function (req, res) {
   if (handler) {
     handler(req, res);
   } else {
-    helpers.send404(res);
+    httpHelper.send404(res);
   }
 };
