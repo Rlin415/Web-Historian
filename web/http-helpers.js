@@ -11,24 +11,48 @@ exports.headers = headers = {
   'Content-Type': "text/html"
 };
 
-var actions = {
-   "GET": function(req, res) {
-    res.writeHead(404,headers.headers);
-    res.end();
-  },
-  "POST": function(req, res) {
-    res.writeHead(404, headers.headers);
-    res.end();
-  },
-  "OPTIONS": function(req, res) {
-    res.writeHead(404, headers.headers);
-    res.end();
-  }
+exports.sendRedirect = function(res, location, status) {
+  status = status || 302;
+  res.writeHead(status, {Location: location});
+  res.end();
 };
 
-exports.serveAssets = function(req, res) {
-  var action = actions[req.method];
-  action(req, res);
+exports.sendResponse = function(res, obj, status) {
+  status = status || 200;
+  res.writeHead(status, headers);
+  res.end(obj);
+};
+
+exports.collectData = function(req, callback) {
+  var data = '';
+
+  req.on('data', function(chunk) {
+    data += chunk;
+  });
+  req.on('end', function() {
+    callback(data);
+  });
+};
+
+exports.send404 = function(res) {
+  exports.sendResponse(res, '404: Page not found', 404);
+};
+
+exports.serveAssets = function(res, asset, callback) {
+  var encoding = {encoding: 'utf8'};
+  var readFile = Q.denodeify(fs.readFile);
+
+  readFile(archive.paths.siteAssets + asset, encoding)
+    .then(function(contents) {
+      if (contents) exports.sendResponse(res, contents);
+    }, function(err) {
+      return readFile(archive.paths.archivedSites + asset, encoding);
+    })
+    .then(function(contents) {
+      if (contents) exports.sendResponse(res, contents);
+    }, function(err) {
+      callback ? callback(): exports.send404(res);
+    });
 };
 
 
